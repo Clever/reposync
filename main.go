@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Clever/ark/cmd/sticky"
 	"github.com/fatih/color"
 	"github.com/google/go-github/github"
+	"github.com/rgarcia/reposync/sticky"
 	"golang.org/x/oauth2"
 )
 
