@@ -50,8 +50,13 @@ $(GOPATH)/bin/github-release:
 	mv bin/linux/amd64/github-release $(GOPATH)/bin/github-release
 	rm -rf linux-amd64-github-release.tar.bz2 bin/linux
 
+export GITHUB_TOKEN ?= $(GITHUB_API_TOKEN)
+export GITHUB_USER ?= rgarcia
+export GITHUB_REPO ?= $(EXECUTABLE)
 publish: $(GOPATH)/bin/github-release release
-	$(GOPATH)/bin/github-release -u rgarcia -r reposync -t $(VERSION) -d $(VERSION)
+	$(GOPATH)/bin/github-release release -t $(VERSION) -n $(VERSION) -d $(VERSION)
+	$(GOPATH)/bin/github-release upload -t $(VERSION) -n $(EXECUTABLE)-v$(VERSION)-darwin-amd64.tar.gz -f release/$(EXECUTABLE)-v$(VERSION)-darwin-amd64.tar.gz
+	$(GOPATH)/bin/github-release upload -t $(VERSION) -n $(EXECUTABLE)-v$(VERSION)-linux-amd64.tar.gz -f release/$(EXECUTABLE)-v$(VERSION)-linux-amd64.tar.gz
 
 clean:
 	rm -rf bin/*
