@@ -48,7 +48,7 @@ $(GOPATH)/bin/github-release:
 	wget https://github.com/aktau/github-release/releases/download/v0.6.2/linux-amd64-github-release.tar.bz2
 	tar xjf linux-amd64-github-release.tar.bz2 
 	mv bin/linux/amd64/github-release $(GOPATH)/bin/github-release
-	rm -rf gh-release_2.2.0_linux_x86_64.tgz bin/linux
+	rm -rf linux-amd64-github-release.tar.bz2 bin/linux
 
 publish: $(GOPATH)/bin/github-release release
 	$(GOPATH)/bin/github-release -u rgarcia -r reposync -t $(VERSION) -d $(VERSION)
