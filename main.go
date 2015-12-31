@@ -19,13 +19,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var Version string
+
 func main() {
+	versionflag := flag.Bool("version", false, "Shows version an exits")
 	user := flag.String("user", "", "Git Hub user or organization you'd like to sync a folder with")
 	dir := flag.String("dir", "", "Directory to put folders for each repo")
 	archivedir := flag.String("archivedir", "", "Directory to move folders in dir that are not associated with a repo")
 	token := flag.String("token", "", "GitHub token to use for auth")
 	dryrun := flag.Bool("dryrun", false, "Set to true to print actions instead of performing them")
 	flag.Parse()
+	if *versionflag {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
 	if *user == "" {
 		log.Fatal("must provide user")
 	}

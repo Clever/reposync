@@ -10,7 +10,7 @@ VERSION := $(shell cat VERSION)
 all: test build
 
 build:
-	go build -o bin/$(EXECUTABLE) $(EXECUTABLEPKG)
+	go build -ldflags "-X main.Version=$(VERSION)-dev" -o bin/$(EXECUTABLE) $(EXECUTABLEPKG)
 
 vendor: golang-godep-vendor-deps
 	$(call golang-godep-vendor,$(PKGS))
