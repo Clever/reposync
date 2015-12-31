@@ -1,0 +1,39 @@
+{
+	"ImportPath": "github.com/rgarcia/reposync",
+	"GoVersion": "go1.5.2",
+	"Packages": [
+		"github.com/rgarcia/reposync",
+		"github.com/rgarcia/reposync/sticky"
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/fatih/color",
+			"Comment": "v0.1-12-g9aae6aa",
+			"Rev": "9aae6aaa22315390f03959adca2c4d395b02fcef"
+		},
+		{
+			"ImportPath": "github.com/google/go-github/github",
+			"Rev": "0d67682ce830f252a1d56215f39b71199036361d"
+		},
+		{
+			"ImportPath": "github.com/google/go-querystring/query",
+			"Rev": "547ef5ac979778feb2f760cdb5f4eae1a2207b86"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-colorable",
+			"Rev": "51a7e7a8b1665b25ca173debdc8d52d493348f15"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "d6aaa2f596ae91a0a58d8e7f2c79670991468e4f"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "03affa02f16950ea3188823456766ed60bfed9bb"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "c30abeebd1a0c41f6e0d9ad6d26fd9daf8aff7d6"
+		}
+	]
+}
