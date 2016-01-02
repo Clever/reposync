@@ -23,7 +23,8 @@ var Version string
 
 func main() {
 	versionflag := flag.Bool("version", false, "Shows version an exits")
-	user := flag.String("user", "", "Git Hub user or organization you'd like to sync a folder with")
+	user := flag.String("user", "", "GitHub user you'd like to sync a folder with. Must specify this or org")
+	org := flag.String("org", "", "GitHub organization you'd like to sync a folder with. Must specify this or user")
 	dir := flag.String("dir", "", "Directory to put folders for each repo")
 	archivedir := flag.String("archivedir", "", "Directory to move folders in dir that are not associated with a repo")
 	token := flag.String("token", "", "GitHub token to use for auth")
@@ -33,8 +34,8 @@ func main() {
 		fmt.Println(Version)
 		os.Exit(0)
 	}
-	if *user == "" {
-		log.Fatal("must provide user")
+	if *user == "" && *org == "" {
+		log.Fatal("must provide user or org")
 	}
 	if *dir == "" {
 		log.Fatal("must provide dir")
@@ -46,7 +47,8 @@ func main() {
 		log.Fatal("must provide token")
 	}
 	rs := RepoSync{
-		org:        *user,
+		user:       *user,
+		org:        *org,
 		workdir:    *dir,
 		archivedir: *archivedir,
 		token:      *token,
@@ -116,13 +118,12 @@ func (tws *TaskWithReporter) Run() {
 }
 
 type RepoSync struct {
-	org         string
-	workdir     string
-	archivedir  string
-	token       string
-	language    string
-	languageNot string
-	dryrun      bool
+	org        string
+	user       string
+	workdir    string
+	archivedir string
+	token      string
+	dryrun     bool
 }
 
 func (rs RepoSync) Sync() error {
@@ -135,35 +136,51 @@ func (rs RepoSync) Sync() error {
 		)
 		tc := oauth2.NewClient(oauth2.NoContext, ts)
 		client := github.NewClient(tc)
-		opt := &github.RepositoryListByOrgOptions{
-			Type:        "all",
-			ListOptions: github.ListOptions{PerPage: 100},
-		}
-		for {
-			repos, resp, err := client.Repositories.ListByOrg(rs.org, opt)
-			if err != nil {
-				return err
+		if rs.org != "" {
+			opt := &github.RepositoryListByOrgOptions{
+				Type:        "all",
+				ListOptions: github.ListOptions{PerPage: 100},
 			}
-			// add repos that filters (if any)
-			for _, repo := range repos {
-				if rs.language != "" && (repo.Language == nil || *repo.Language != rs.language) {
-					continue
+			for {
+				repos, resp, err := client.Repositories.ListByOrg(rs.org, opt)
+				if err != nil {
+					return err
 				}
-				if rs.languageNot != "" && !(repo.Language == nil || *repo.Language != rs.languageNot) {
-					continue
+				for _, repo := range repos {
+					if repo.Name == nil {
+						continue
+					}
+					allRepos = append(allRepos, *repo.Name)
 				}
-				if repo.Name == nil {
-					continue
+				if resp.NextPage == 0 {
+					break
 				}
-				allRepos = append(allRepos, *repo.Name)
+				opt.ListOptions.Page = resp.NextPage
 			}
-			if resp.NextPage == 0 {
-				break
+		} else if rs.user != "" {
+			opt := &github.RepositoryListOptions{
+				Type:        "all",
+				ListOptions: github.ListOptions{PerPage: 1000},
 			}
-			opt.ListOptions.Page = resp.NextPage
+			for {
+				repos, resp, err := client.Repositories.List(rs.user, opt)
+				if err != nil {
+					return err
+				}
+				for _, repo := range repos {
+					if repo.Name == nil {
+						continue
+					}
+					allRepos = append(allRepos, *repo.Name)
+				}
+				if resp.NextPage == 0 {
+					break
+				}
+				opt.ListOptions.Page = resp.NextPage
+			}
 		}
 		return nil
-	}, sticky.NewBlock(1).Line(0), fmt.Sprintf("loading repos for %s", rs.org)).Run()
+	}, sticky.NewBlock(1).Line(0), fmt.Sprintf("loading repos for %s %s", rs.org, rs.user)).Run()
 
 	// get list of current repositories checked out, ignoring non-directories and hidden directories
 	var currentRepos []string
@@ -218,7 +235,10 @@ func (rs RepoSync) Sync() error {
 				if rs.dryrun {
 					return nil
 				}
-				return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, r), path.Join(rs.workdir, r)).Run()
+				if rs.org != "" {
+					return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, r), path.Join(rs.workdir, r)).Run()
+				}
+				return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.user, r), path.Join(rs.workdir, r)).Run()
 			}, block.Line(i+len(reposToArchive)), fmt.Sprintf("cloning %s", r)).Run()
 		}()
 	}

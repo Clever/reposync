@@ -4,11 +4,10 @@ SHELL ?= /bin/bash
 .PHONY: golang-godep-vendor golang-test-deps $(FGT) $(GODEP) $(GOLINT)
 
 # This block checks and confirms that the Go toolchain installed is version 1.5
-GOVERSION := $(shell go version | grep 1.5)
+GOVERSION := $(shell go version | grep 1.6)
 ifeq "$(GOVERSION)" ""
-	$(error must be running Go version 1.5)
+	$(error must be running Go version 1.6)
 endif
-export GO15VENDOREXPERIMENT = 1
 
 # FGT is a utility that exits with 1 whenever any stderr/stdout output is recieved.
 FGT := $(GOPATH)/bin/fgt
