@@ -11,11 +11,8 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/fatih/color"
 	"github.com/google/go-github/github"
-	"github.com/rgarcia/reposync/sticky"
 	"golang.org/x/oauth2"
 )
 
@@ -81,39 +78,22 @@ func Difference(a, b []string) []string {
 	return diff
 }
 
-// TaskWithReporter runs a function and reports on its status via sticky.Line.
-type TaskWithReporter struct {
+// Task runs a function and logs its progress.
+type Task struct {
 	task        func() error
-	reporter    sticky.Line
 	description string
 }
 
-func NewTaskWithReporter(task func() error, reporter sticky.Line, description string) *TaskWithReporter {
-	return &TaskWithReporter{task: task, reporter: reporter, description: description}
+func NewTask(task func() error, description string) *Task {
+	return &Task{task: task, description: description}
 }
 
-func (tws *TaskWithReporter) Run() {
-	result := make(chan error)
-	go func() {
-		result <- tws.task()
-	}()
-	status := sticky.NewStatusPart()
-	descriptionWithSpace := " " + tws.description
-	for {
-		select {
-		case <-time.Tick(1 * time.Second):
-			status.Active()
-			tws.reporter.DisplayP(status, sticky.NewTextPart(descriptionWithSpace).Color(color.FgYellow, color.Bold))
-		case err := <-result:
-			if err != nil {
-				status.Fail()
-				tws.reporter.DisplayP(status, sticky.NewTextPart(fmt.Sprintf("%s: %s", descriptionWithSpace, err)).Color(color.FgRed, color.Bold))
-			} else {
-				tws.reporter.DisplayP(status, sticky.NewTextPart(descriptionWithSpace).Color(color.FgGreen, color.Bold))
-				status.Success()
-			}
-			return
-		}
+func (tws *Task) Run() {
+	log.Printf("begin %s", tws.description)
+	if err := tws.task(); err != nil {
+		log.Printf("error %s: %s", tws.description, err)
+	} else {
+		log.Printf("finished %s", tws.description)
 	}
 }
 
@@ -130,7 +110,7 @@ func (rs RepoSync) Sync() error {
 
 	// get list of repos for org
 	var allRepos []string
-	NewTaskWithReporter(func() error {
+	NewTask(func() error {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: rs.token},
 		)
@@ -180,11 +160,11 @@ func (rs RepoSync) Sync() error {
 			}
 		}
 		return nil
-	}, sticky.NewBlock(1).Line(0), fmt.Sprintf("loading repos for %s %s", rs.org, rs.user)).Run()
+	}, fmt.Sprintf("loading repos for %s %s", rs.org, rs.user)).Run()
 
 	// get list of current repositories checked out, ignoring non-directories and hidden directories
 	var currentRepos []string
-	NewTaskWithReporter(func() error {
+	NewTask(func() error {
 		files, _ := ioutil.ReadDir(rs.workdir)
 		for _, f := range files {
 			if !f.IsDir() || strings.Index(f.Name(), ".") == 0 {
@@ -193,45 +173,39 @@ func (rs RepoSync) Sync() error {
 			currentRepos = append(currentRepos, f.Name())
 		}
 		return nil
-	}, sticky.NewBlock(1).Line(0), fmt.Sprintf("loading repos already cloned in %s", rs.workdir)).Run()
+	}, fmt.Sprintf("loading repos already cloned in %s", rs.workdir)).Run()
 
 	reposToArchive := Difference(currentRepos, allRepos)
 	reposToClone := Difference(allRepos, currentRepos)
 
 	if len(reposToArchive)+len(reposToClone) == 0 {
-		sticky.NewBlock(1).Line(0).DisplayP(sticky.NewStatusPart().Success(), sticky.NewTextPart(" nothing to do!").Color(color.FgGreen, color.Bold))
+		log.Print("nothing to do!")
 		return nil
 	}
-
-	block := sticky.NewBlock(len(reposToArchive) + len(reposToClone))
 
 	var archivers sync.WaitGroup
 	if err := os.MkdirAll(rs.archivedir, 0755); err != nil {
 		return err
 	}
-	for idx, repo := range reposToArchive {
+	for _, repo := range reposToArchive {
 		archivers.Add(1)
-		i := idx
-		r := repo
-		go func() {
+		go func(r string) {
 			defer archivers.Done()
-			NewTaskWithReporter(func() error {
+			NewTask(func() error {
 				if rs.dryrun {
 					return nil
 				}
 				return os.Rename(path.Join(rs.workdir, r), path.Join(rs.archivedir, r))
-			}, block.Line(i), fmt.Sprintf("archiving %s", r)).Run()
-		}()
+			}, fmt.Sprintf("archiving %s", r)).Run()
+		}(repo)
 	}
 
 	var cloners sync.WaitGroup
-	for idx, repo := range reposToClone {
+	for _, repo := range reposToClone {
 		cloners.Add(1)
-		i := idx
-		r := repo
-		go func() {
+		go func(r string) {
 			defer cloners.Done()
-			NewTaskWithReporter(func() error {
+			NewTask(func() error {
 				if rs.dryrun {
 					return nil
 				}
@@ -239,8 +213,8 @@ func (rs RepoSync) Sync() error {
 					return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, r), path.Join(rs.workdir, r)).Run()
 				}
 				return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.user, r), path.Join(rs.workdir, r)).Run()
-			}, block.Line(i+len(reposToArchive)), fmt.Sprintf("cloning %s", r)).Run()
-		}()
+			}, fmt.Sprintf("cloning %s", r)).Run()
+		}(repo)
 	}
 
 	archivers.Wait()
