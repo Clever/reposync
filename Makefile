@@ -1,11 +1,13 @@
 include golang.mk
-.DEFAULT_GOAL := 
+.DEFAULT_GOAL :=
 PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLEPKG := github.com/rgarcia/reposync
 EXECUTABLE := reposync
 VERSION := $(shell cat VERSION)
 
 .PHONY: all build clean test vendor $(PKGS)
+
+$(eval $(call golang-version-check,1.5))
 
 all: test build
 
@@ -46,7 +48,7 @@ release: $(RELEASE_ARTIFACTS)
 $(GOPATH)/bin/github-release:
 	# assumes linux dev env
 	wget https://github.com/aktau/github-release/releases/download/v0.6.2/linux-amd64-github-release.tar.bz2
-	tar xjf linux-amd64-github-release.tar.bz2 
+	tar xjf linux-amd64-github-release.tar.bz2
 	mv bin/linux/amd64/github-release $(GOPATH)/bin/github-release
 	rm -rf linux-amd64-github-release.tar.bz2 bin/linux
 
