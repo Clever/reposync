@@ -21,7 +21,10 @@ var Version string
 func main() {
 	versionflag := flag.Bool("version", false, "Shows version an exits")
 	user := flag.String("user", "", "GitHub user you'd like to sync a folder with. Must specify this or org")
+	userRepoType := flag.String("userrepotype", "all", "For the GitHub user, type of repos you'd like to pull. Can be all, owner, member. Default is all.")
+	userRepoForks := flag.Bool("userrepoforks", true, "For the GitHub user, include forks. Default is true.")
 	org := flag.String("org", "", "GitHub organization you'd like to sync a folder with. Must specify this or user")
+	orgRepoType := flag.String("orgrepotype", "all", "For the GitHub org, type of repos you'd like to pull. Can be all, public, private, forks, sources, member. Default is all.")
 	dir := flag.String("dir", "", "Directory to put folders for each repo")
 	archivedir := flag.String("archivedir", "", "Directory to move folders in dir that are not associated with a repo")
 	token := flag.String("token", "", "GitHub token to use for auth")
@@ -44,12 +47,15 @@ func main() {
 		log.Fatal("must provide token")
 	}
 	rs := RepoSync{
-		user:       *user,
-		org:        *org,
-		workdir:    *dir,
-		archivedir: *archivedir,
-		token:      *token,
-		dryrun:     *dryrun,
+		user:          *user,
+		userRepoType:  *userRepoType,
+		userRepoForks: *userRepoForks,
+		org:           *org,
+		orgRepoType:   *orgRepoType,
+		workdir:       *dir,
+		archivedir:    *archivedir,
+		token:         *token,
+		dryrun:        *dryrun,
 	}
 	if err := rs.Sync(); err != nil {
 		log.Fatal(err)
@@ -98,12 +104,15 @@ func (tws *Task) Run() {
 }
 
 type RepoSync struct {
-	org        string
-	user       string
-	workdir    string
-	archivedir string
-	token      string
-	dryrun     bool
+	org           string
+	orgRepoType   string
+	user          string
+	userRepoType  string
+	userRepoForks bool
+	workdir       string
+	archivedir    string
+	token         string
+	dryrun        bool
 }
 
 func (rs RepoSync) Sync() error {
@@ -118,7 +127,7 @@ func (rs RepoSync) Sync() error {
 		client := github.NewClient(tc)
 		if rs.org != "" {
 			opt := &github.RepositoryListByOrgOptions{
-				Type:        "all",
+				Type:        rs.orgRepoType,
 				ListOptions: github.ListOptions{PerPage: 100},
 			}
 			for {
@@ -139,7 +148,7 @@ func (rs RepoSync) Sync() error {
 			}
 		} else if rs.user != "" {
 			opt := &github.RepositoryListOptions{
-				Type:        "all",
+				Type:        rs.userRepoType,
 				ListOptions: github.ListOptions{PerPage: 1000},
 			}
 			for {
@@ -149,6 +158,9 @@ func (rs RepoSync) Sync() error {
 				}
 				for _, repo := range repos {
 					if repo.Name == nil {
+						continue
+					}
+					if rs.userRepoForks == false && repo.Fork != nil && *repo.Fork {
 						continue
 					}
 					allRepos = append(allRepos, *repo.Name)
