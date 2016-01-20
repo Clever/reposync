@@ -19,7 +19,7 @@ import (
 var Version string
 
 func main() {
-	versionflag := flag.Bool("version", false, "Shows version an exits")
+	versionflag := flag.Bool("version", false, "Shows version and exits")
 	user := flag.String("user", "", "GitHub user you'd like to sync a folder with. Must specify this or org")
 	userRepoType := flag.String("userrepotype", "all", "For the GitHub user, type of repos you'd like to pull. Can be all, owner, member. Default is all.")
 	userRepoForks := flag.Bool("userrepoforks", true, "For the GitHub user, include forks. Default is true.")
