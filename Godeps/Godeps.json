@@ -1,25 +1,30 @@
 {
 	"ImportPath": "github.com/rgarcia/reposync",
 	"GoVersion": "go1.6",
+	"GodepVersion": "v62",
 	"Packages": [
 		"github.com/rgarcia/reposync"
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "63fbbb283ce4913a5ac1b6de7abae50dbf594a04"
+			"Rev": "7f154f4cabd28c7b5962c37a5f59bb813ae3791a"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
-			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
+			"Rev": "9235644dd9e52eeae6fa48efd539fdc351a0af53"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "3b90a77d2885fb0429e8a21ab72fc73ca6f8b401"
+			"Rev": "fb93926129b8ec0056f2f458b1f519654814edf0"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",
-			"Rev": "2baa8a1b9338cf13d9eeb27696d761155fa480be"
+			"Rev": "b0e2337fe6ec0c637fa4f123268b972f334504eb"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "b0e2337fe6ec0c637fa4f123268b972f334504eb"
 		}
 	]
 }
