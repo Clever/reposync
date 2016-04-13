@@ -7,7 +7,7 @@ VERSION := $(shell cat VERSION)
 
 .PHONY: all build clean test vendor $(PKGS)
 
-$(eval $(call golang-version-check,1.5))
+$(eval $(call golang-version-check,1.6))
 
 all: test build
 
