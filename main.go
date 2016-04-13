@@ -213,27 +213,34 @@ func (rs RepoSync) Sync() error {
 	}
 
 	var cloners sync.WaitGroup
-	for _, repo := range reposToClone {
+	r := make(chan string)
+	for i := 0; i < 20; i++ {
 		cloners.Add(1)
-		go func(r string) {
+		go func() {
 			defer cloners.Done()
-			NewTask(func() error {
-				if rs.dryrun {
-					return nil
-				}
-				if rs.org != "" {
-					if output, err := exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, r), path.Join(rs.workdir, r)).CombinedOutput(); err != nil {
+			for repo := range r {
+				NewTask(func() error {
+					if rs.dryrun {
+						return nil
+					}
+					if rs.org != "" {
+						if output, err := exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, repo), path.Join(rs.workdir, repo)).CombinedOutput(); err != nil {
+							return fmt.Errorf("%s from %s", err, output)
+						}
+						return nil
+					}
+					if output, err := exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.user, repo), path.Join(rs.workdir, repo)).CombinedOutput(); err != nil {
 						return fmt.Errorf("%s from %s", err, output)
 					}
 					return nil
-				}
-				if output, err := exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.user, r), path.Join(rs.workdir, r)).CombinedOutput(); err != nil {
-					return fmt.Errorf("%s from %s", err, output)
-				}
-				return nil
-			}, fmt.Sprintf("cloning %s", r)).Run()
-		}(repo)
+				}, fmt.Sprintf("cloning %s", repo)).Run()
+			}
+		}()
 	}
+	for _, repo := range reposToClone {
+		r <- repo
+	}
+	close(r)
 
 	archivers.Wait()
 	cloners.Wait()
