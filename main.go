@@ -222,9 +222,15 @@ func (rs RepoSync) Sync() error {
 					return nil
 				}
 				if rs.org != "" {
-					return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, r), path.Join(rs.workdir, r)).Run()
+					if output, err := exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.org, r), path.Join(rs.workdir, r)).CombinedOutput(); err != nil {
+						return fmt.Errorf("%s from %s", err, output)
+					}
+					return nil
 				}
-				return exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.user, r), path.Join(rs.workdir, r)).Run()
+				if output, err := exec.Command("git", "clone", fmt.Sprintf("git@github.com:%s/%s", rs.user, r), path.Join(rs.workdir, r)).CombinedOutput(); err != nil {
+					return fmt.Errorf("%s from %s", err, output)
+				}
+				return nil
 			}, fmt.Sprintf("cloning %s", r)).Run()
 		}(repo)
 	}
