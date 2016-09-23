@@ -27,7 +27,7 @@ func main() {
 	orgRepoType := flag.String("orgrepotype", "all", "For the GitHub org, type of repos you'd like to pull. Can be all, public, private, forks, sources, member. Default is all.")
 	dir := flag.String("dir", "", "Directory to put folders for each repo")
 	archivedir := flag.String("archivedir", "", "Directory to move folders in dir that are not associated with a repo")
-	token := flag.String("token", "", "GitHub token to use for auth")
+	token := flag.String("token", "", "GitHub token to use for auth. If not provided, uses GITHUB_API_TOKEN environment variable.")
 	dryrun := flag.Bool("dryrun", false, "Set to true to print actions instead of performing them")
 	flag.Parse()
 	if *versionflag {
@@ -44,7 +44,12 @@ func main() {
 		log.Fatal("must provide archivedir")
 	}
 	if *token == "" {
-		log.Fatal("must provide token")
+		envToken := os.Getenv("GITHUB_API_TOKEN")
+		if envToken == "" {
+			log.Fatal("must provide token")
+		} else {
+			token = &envToken
+		}
 	}
 	rs := RepoSync{
 		user:          *user,
