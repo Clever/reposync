@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -29,6 +30,7 @@ func main() {
 	archivedir := flag.String("archivedir", "", "Directory to move folders in dir that are not associated with a repo")
 	token := flag.String("token", "", "GitHub token to use for auth")
 	dryrun := flag.Bool("dryrun", false, "Set to true to print actions instead of performing them")
+	maxAge := flag.Int("maxAge", -1, "The max number of months a repo should have had any activity")
 	flag.Parse()
 	if *versionflag {
 		fmt.Println(Version)
@@ -56,6 +58,7 @@ func main() {
 		archivedir:    *archivedir,
 		token:         *token,
 		dryrun:        *dryrun,
+		maxAge:        *maxAge,
 	}
 	if err := rs.Sync(); err != nil {
 		log.Fatal(err)
@@ -113,6 +116,7 @@ type RepoSync struct {
 	archivedir    string
 	token         string
 	dryrun        bool
+	maxAge        int
 }
 
 func (rs RepoSync) Sync() error {
@@ -139,6 +143,9 @@ func (rs RepoSync) Sync() error {
 					if repo.Name == nil {
 						continue
 					}
+					if rs.maxAge != -1 && monthsCountSince(repo.UpdatedAt.Time) > rs.maxAge {
+						continue
+					}
 					allRepos = append(allRepos, *repo.Name)
 				}
 				if resp.NextPage == 0 {
@@ -161,6 +168,9 @@ func (rs RepoSync) Sync() error {
 						continue
 					}
 					if rs.userRepoForks == false && repo.Fork != nil && *repo.Fork {
+						continue
+					}
+					if rs.maxAge != -1 && monthsCountSince(repo.UpdatedAt.Time) > rs.maxAge {
 						continue
 					}
 					allRepos = append(allRepos, *repo.Name)
@@ -245,4 +255,20 @@ func (rs RepoSync) Sync() error {
 	archivers.Wait()
 	cloners.Wait()
 	return nil
+}
+
+func monthsCountSince(t time.Time) int {
+	now := time.Now()
+	months := 0
+	month := t.Month()
+	for t.Before(now) {
+		t = t.Add(time.Hour * 24)
+		nextMonth := t.Month()
+		if nextMonth != month {
+			months++
+		}
+		month = nextMonth
+	}
+
+	return months
 }
