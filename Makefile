@@ -11,9 +11,9 @@ $(eval $(call golang-version-check,1.13))
 
 all: test build
 
-install_deps: golang-dep-vendor-deps
+install_deps:
+	go mod vendor
 
-	$(call golang-dep-vendor)
 build:
 	go build -ldflags "-X main.Version=$(VERSION)" -o bin/$(EXECUTABLE) $(EXECUTABLEPKG)
 
